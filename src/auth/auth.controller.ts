@@ -22,10 +22,10 @@ export class AuthController {
 
   //endpoint to register
   @Post('register')
-  async register(@Body(new ValidationPipe({
-    whitelist: true,
-  })) dto: AuthDto) {
-    const user = await this.authService.register(dto); 
+  async register(@Body(new ValidationPipe({ //validate body with validator pipes used in DTO
+    whitelist: true, // pluck any field not present in DTO
+  })) dto: AuthDto) {  // receive a parameter named dto which is an AuthDto type/instance
+    const user = await this.authService.register(dto); // call a service to create a user
     return user;
   }
 
