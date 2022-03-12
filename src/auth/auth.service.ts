@@ -3,11 +3,22 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthDto } from './dto';
 import * as argon from 'argon2';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 //Injectable decorator makes the service available to instantiate on the constructor in the controller file
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {} // this makes prisma methods available in this scope
+  constructor( // here i inject methods
+    // this makes prisma methods available in this scope
+    private prisma: PrismaService,
+    
+    //this makes jwt methods available here
+    private jwt: JwtService, 
+    // i can use this here because I imported JwtModule on 
+    //auth.module.ts AND JwtModule exports this service
+    private config: ConfigService,
+    ) {} 
 
   async sign_in(dto: AuthDto) {
     //find user by email 
@@ -23,8 +34,8 @@ export class AuthService {
     if (!pwrdMatch) {
       throw new ForbiddenException('Password incorrect');
     }
-    delete user.hash; 
-    return user;
+    const token = await this.signToken(user.id, user.email);
+    return token;
   }
 
   async register(dto: AuthDto) {
@@ -50,5 +61,19 @@ export class AuthService {
         // return error; // return the error with error code
       }
     }
+  }
+
+  async signToken(userId: number, userEmail: string): Promise<{access_token: string}> {
+    const payload = {
+      sub: userId,
+      email: userEmail
+    };
+    const secret = this.config.get('JWT_SECRET'); 
+
+    const token = await this.jwt.signAsync(payload, {
+      expiresIn: '150m',
+      secret,
+    });
+    return {access_token: token};
   }
 }
