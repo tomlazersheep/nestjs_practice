@@ -9,8 +9,22 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 export class AuthService {
   constructor(private prisma: PrismaService) {} // this makes prisma methods available in this scope
 
-  sign_in(dto: AuthDto) {
-    return { msg:'im signed in frasdasdom a service :)' }
+  async sign_in(dto: AuthDto) {
+    //find user by email 
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: dto.email
+      }
+    });
+    if (!user) {
+      throw new ForbiddenException('User does not exist');
+    }
+    const pwrdMatch = await argon.verify(user.hash, dto.password);
+    if (!pwrdMatch) {
+      throw new ForbiddenException('Password incorrect');
+    }
+    delete user.hash; 
+    return user;
   }
 
   async register(dto: AuthDto) {
